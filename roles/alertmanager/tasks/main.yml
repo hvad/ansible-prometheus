@@ -1,0 +1,66 @@
+---
+
+- name: Create alertmanager user.
+  user:
+    name: alertmanager
+    shell: /bin/false  
+    comment: "Alertmanager User"  
+    createhome: no  
+    system: yes 
+
+- name: Create alertmanager data directory.
+  file:
+    path: /var/lib/alertmanager/
+    state: directory
+    owner: alertmanager
+    group: alertmanager
+
+- name: Create alertmanager confugration directory.
+  file:
+    path: /etc/alertmanager/
+    state: directory
+
+- name: Download alertmanager archive with checksum url (sha256).
+  get_url:
+    url: https://github.com/prometheus/alertmanager/releases/download/v0.21.0/alertmanager-0.21.0.linux-amd64.tar.gz
+    dest: /tmp/alertmanager-0.21.0.linux-amd64.tar.gz
+    checksum: sha256:9ccd863937436fd6bfe650e22521a7f2e6a727540988eef515dde208f9aef232
+
+- name: Unarchive alertmanager.
+  unarchive:
+    src: /tmp/alertmanager-0.21.0.linux-amd64.tar.gz
+    dest: /tmp
+    remote_src: yes
+
+- name: Copy alertmanager binarie.
+  copy:
+    src: /tmp/alertmanager-0.21.0.linux-amd64/{{ item }}
+    dest: /usr/local/bin/{{ item }}
+    owner: alertmanager
+    group: alertmanager
+    mode: 0755
+    remote_src: yes
+  loop: 
+    - alertmanager
+    - amtool
+
+- name: Copy alertmanager configuration.
+  copy:
+    src: /tmp/alertmanager-0.21.0.linux-amd64/alertmanager.yml
+    dest: /etc/alertmanager/alertmanager.yml
+    remote_src: yes
+
+- name: Copy alertmanager systemd.
+  copy:
+    src: alertmanager.service 
+    dest: /etc/systemd/system/alertmanager.service
+
+- name: Reload systemd daemon;
+  systemd:
+    daemon_reload: yes
+
+- name: Start and enable alertmanager service.
+  systemd:
+    state: started
+    enabled: yes
+    name: alertmanager

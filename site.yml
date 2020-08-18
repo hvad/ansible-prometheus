@@ -1,0 +1,12 @@
+---
+# This playbook manage user account.
+
+- name: All
+  hosts: all
+  remote_user: root
+
+  roles:
+    - prometheus
+    - node_exporter
+      #    - grafana
+    - alertmanager  

@@ -1,0 +1,66 @@
+---
+
+- name: Create prometheus user.
+  user:
+    name: prometheus
+    shell: /bin/false  
+    comment: "Prometheus User"  
+    createhome: no  
+    system: yes 
+
+- name: Create prometheus data directory.
+  file:
+    path: /var/lib/prometheus/
+    state: directory
+    owner: prometheus
+    group: prometheus
+
+- name: Create prometheus confugration directory.
+  file:
+    path: /etc/prometheus/
+    state: directory
+
+- name: Download prometheus archive with checksum url (sha256).
+  get_url:
+    url: https://github.com/prometheus/prometheus/releases/download/v2.20.1/prometheus-2.20.1.linux-amd64.tar.gz  
+    dest: /tmp/prometheus-2.20.1.linux-amd64.tar.gz
+    checksum: sha256:8fb248b579b8b9a88dd9b1686f7f68db7071960a45b28619145d3a4037375dcb
+
+- name: Unarchive prometheus.
+  unarchive:
+    src: /tmp/prometheus-2.20.1.linux-amd64.tar.gz
+    dest: /tmp
+    remote_src: yes
+
+- name: Copy prometheus binarie.
+  copy:
+    src: /tmp/prometheus-2.20.1.linux-amd64/{{ item }}
+    dest: /usr/local/bin/{{ item }}
+    owner: prometheus
+    group: prometheus
+    mode: 0755
+    remote_src: yes
+  loop: 
+    - prometheus
+    - promtool
+
+- name: Copy prometheus configuration.
+  copy:
+    src: /tmp/prometheus-2.20.1.linux-amd64/prometheus.yml
+    dest: /etc/prometheus/prometheus.yml
+    remote_src: yes
+
+- name: Copy prometheus systemd.
+  copy:
+    src: prometheus.service 
+    dest: /etc/systemd/system/prometheus.service
+
+- name: Reload systemd daemon;
+  systemd:
+    daemon_reload: yes
+
+- name: Start and enable prometheus service.
+  systemd:
+    state: started
+    enabled: yes
+    name: prometheus
